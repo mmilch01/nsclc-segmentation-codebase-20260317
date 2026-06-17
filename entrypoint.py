@@ -35,7 +35,7 @@ def normalize_xnat_input(input_root, view_root, experiment):
     experiment_level_scans = input_root / "SCANS"
     if project_level_experiments.is_dir(): return input_root / "experiments"
     if experiment_level_scans.is_dir():
-        if not experiment: raise ValueError("Experiment-level /input detected, but --experiment was not provided.")
+        if not experiment: raise ValueError("Experiment-level /input detected, but --session was not provided.")
         experiment_dir = view_root / "experiments" / experiment
         experiment_dir.mkdir(parents=True, exist_ok=True)
         scans_link = experiment_dir / "SCANS"
@@ -116,6 +116,10 @@ def main():
     print(f'global vars:{global_vars}')
 
     wa.set_logger()
+    batch_env=os.environ.copy()
+    os.environ["XNAT_HOST"] = args.host
+    os.environ["XNAT_USER"] = args.user
+    os.environ["XNAT_PASS"] = args.password
 
     for scan in scans:       
         # Whether to upload the generated job script bundle to the session resource.
@@ -158,6 +162,8 @@ def main():
         print(f'Written {batch_file}')
 
         print(f'Running {batch_file}')
+
+        
         result = subprocess.run(["bash", str(batch_file)], check=False)
         if result.returncode != 0:
             raise RuntimeError(
