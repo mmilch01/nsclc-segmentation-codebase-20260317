@@ -6,48 +6,50 @@ import argparse
 import subprocess
 import yaml
 from pathlib import Path
+# Library with XNAT Jupyter workflow Python and shell scripts.
+pymipl_path = Path("/opt/packages/pymipl")
+sys.path.append(str(pymipl_path))
+sys.path.append(str(pymipl_path / "xnat_workflow"))
+
+# dicom_sort is part of pymipl. It analyzes XNAT projects for structural scans
+# and segmentations.
+from dicom_sort import analyze_dir, reindex_to_structurals_and_segs
+import workflow_adapters as wa
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Build NSCLC segmentation workflow jobs from an XNAT project."
     )
-    parser.add_argument(
-        "--project",
-        required=True,
-        help="XNAT project label.",
-    )
-    parser.add_argument(
-        "--host",
-        required=True,
-        help="XNAT host URL.",
-    )
-    parser.add_argument(
-        "--user",
-        required=True,
-        help="XNAT username.",
-    )
-    parser.add_argument(
-        "--pass",
-        dest="password",
-        required=True,
-        help="XNAT password.",
-    )
+    parser.add_argument("--project", required=True, help="XNAT project label.")
+    parser.add_argument("--session", help="XNAT experiment/session label or ID. Required for experiment-level mounts.")
+    parser.add_argument("--host", required=True, help="XNAT host URL.")
+    parser.add_argument("--user", required=True, help="XNAT username.")
+    parser.add_argument("--pass", dest="password", required=True, help="XNAT password.")
     return parser.parse_args()
+
+
+def normalize_xnat_input(input_root, view_root, experiment):
+    """Return a project-shaped input path for dicom_sort."""
+    project_level_experiments = input_root / "experiments"
+    experiment_level_scans = input_root / "SCANS"
+    if project_level_experiments.is_dir(): return input_root
+    if experiment_level_scans.is_dir():
+        if not experiment: raise ValueError("Experiment-level /input detected, but --experiment was not provided.")
+        experiment_dir = view_root / "experiments" / experiment
+        experiment_dir.mkdir(parents=True, exist_ok=True)
+        scans_link = experiment_dir / "SCANS"
+        if scans_link.exists():
+            if scans_link.resolve() != experiment_level_scans.resolve():
+                raise ValueError(f"{scans_link} already exists and does not point to {experiment_level_scans}.")
+        else:
+            scans_link.symlink_to(experiment_level_scans, target_is_directory=True)
+        return view_root
+    raise ValueError("Unrecognized /input layout. Expected /input/experiments/... or /input/SCANS/...")
 
 
 def main():
     args = parse_args()
-
-    # Library with XNAT Jupyter workflow Python and shell scripts.
-    pymipl_path = Path("/opt/packages/pymipl")
-    sys.path.append(str(pymipl_path))
-    sys.path.append(str(pymipl_path / "xnat_workflow"))
-
-    # dicom_sort is part of pymipl. It analyzes XNAT projects for structural scans
-    # and segmentations.
-    from dicom_sort import analyze_dir, reindex_to_structurals_and_segs
-    import workflow_adapters as wa
 
     #set to True to regenerate project directory structure saved in local json file.
     rebuild_directory_structure=True
@@ -56,11 +58,12 @@ def main():
     project=args.project
     
     # Persistent workspace root path
-    root_dir=Path("/workdir")
+    root_dir=Path("/workdir/processing")
+    root_dir.mkdir(parents=True, exist_ok=True)
     
     # Derived variable initializations
     local_workdir_path = root_dir / project
-    xnat_project_path = Path("/input")
+    xnat_project_path = normalize_xnat_input(Path("/input"), Path("/workdir/input"), args.experiment)
     directory_structure_file = local_workdir_path / "project_dir_structure.json"
     xnat_structure_file = local_workdir_path / "xnat_structure.json"
     scanlist_file = local_workdir_path / "scans.csv"
@@ -97,7 +100,7 @@ def main():
     user_env_repo="/opt/packages/user/env_repo"
     
     # User source/resource directory.
-    user_src_repo="NONE"
+    user_src_repo="/opt/packages/user/alg_repo"
     
     global_vars = wa.init_global_vars(
         env_type,
