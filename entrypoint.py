@@ -33,7 +33,7 @@ def normalize_xnat_input(input_root, view_root, experiment):
     """Return a project-shaped input path for dicom_sort."""
     project_level_experiments = input_root / "experiments"
     experiment_level_scans = input_root / "SCANS"
-    if project_level_experiments.is_dir(): return input_root
+    if project_level_experiments.is_dir(): return input_root / "experiments"
     if experiment_level_scans.is_dir():
         if not experiment: raise ValueError("Experiment-level /input detected, but --experiment was not provided.")
         experiment_dir = view_root / "experiments" / experiment
@@ -44,7 +44,7 @@ def normalize_xnat_input(input_root, view_root, experiment):
                 raise ValueError(f"{scans_link} already exists and does not point to {experiment_level_scans}.")
         else:
             scans_link.symlink_to(experiment_level_scans, target_is_directory=True)
-        return view_root
+        return view_root / "experiments"
     raise ValueError("Unrecognized /input layout. Expected /input/experiments/... or /input/SCANS/...")
 
 
@@ -63,7 +63,7 @@ def main():
     
     # Derived variable initializations
     local_workdir_path = root_dir / project
-    xnat_project_path = normalize_xnat_input(Path("/input"), Path("/workdir/input"), args.experiment)
+    xnat_project_path = normalize_xnat_input(Path("/input"), Path("/workdir/input"), args.session)
     directory_structure_file = local_workdir_path / "project_dir_structure.json"
     xnat_structure_file = local_workdir_path / "xnat_structure.json"
     scanlist_file = local_workdir_path / "scans.csv"
@@ -90,7 +90,7 @@ def main():
     if len(scans) == 0: raise ValueError("No structural scans with segmentations found in the project.")
 
     print('First scan: ', scans[0])
-    env_type="container"
+    env_type="jupyter"
     
     # This is the label of the session resource where generated job scripts, logs,
     # and output will be saved.
@@ -108,7 +108,12 @@ def main():
         workflow_id,
         g_user_env_repo=user_env_repo,
         g_user_src_repo=user_src_repo,
+        g_input_mount_path=xnat_project_path,
+        g_local_workdir_path=root_dir,
+        g_pymipl_dir=pymipl_path
     )
+
+    print(f'global vars:{global_vars}')
 
     wa.set_logger()
 
@@ -124,7 +129,10 @@ def main():
         xnat_interface = None
         num_sessions = len(scans)
 
-        job = wa.populate_job_fields(env_type, global_vars, workflow_id, scan)
+        job = wa.populate_job_fields(env_type, global_vars, workflow_id, scan, scan_key="StructScan")
+        job['job_struct_path'] = job['job_scan_context'] / scan['StructScan'] / 'DICOM'
+        print (f"job variables: {job}")
+
 
         job_yaml = Path(__file__).with_name("main_job.yaml")
 
