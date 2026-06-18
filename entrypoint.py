@@ -23,10 +23,28 @@ def parse_args():
     )
     parser.add_argument("--project", required=True, help="XNAT project label.")
     parser.add_argument("--session", help="XNAT experiment/session label or ID. Required for experiment-level mounts.")
-    parser.add_argument("--host", required=True, help="XNAT host URL.")
-    parser.add_argument("--user", required=True, help="XNAT username.")
-    parser.add_argument("--pass", dest="password", required=True, help="XNAT password.")
-    return parser.parse_args()
+    parser.add_argument("--host", help="XNAT host URL. Defaults to XNAT_HOST.")
+    parser.add_argument("--user", help="XNAT username. Defaults to XNAT_USER.")
+    parser.add_argument("--pass", dest="password", help="XNAT password. Defaults to XNAT_PASS.")
+    args = parser.parse_args()
+
+    env_fallbacks = {
+        "host": "XNAT_HOST",
+        "user": "XNAT_USER",
+        "password": "XNAT_PASS",
+    }
+    missing = []
+    for attr, env_name in env_fallbacks.items():
+        value = getattr(args, attr)
+        if value in (None, "", f"${env_name}", f"${{{env_name}}}"):
+            value = os.environ.get(env_name)
+            setattr(args, attr, value)
+        if not getattr(args, attr):
+            missing.append(f"--{attr if attr != 'password' else 'pass'} or {env_name}")
+    if missing:
+        parser.error("missing required XNAT connection settings: " + ", ".join(missing))
+
+    return args
 
 
 def normalize_xnat_input(input_root, view_root, experiment):
@@ -50,6 +68,9 @@ def normalize_xnat_input(input_root, view_root, experiment):
 
 def main():
     args = parse_args()
+    safe_args = argparse.Namespace(**vars(args))
+    safe_args.password = "***"
+    print(f'input arguments: {safe_args}')
 
     #set to True to regenerate project directory structure saved in local json file.
     rebuild_directory_structure=True
@@ -116,7 +137,6 @@ def main():
     print(f'global vars:{global_vars}')
 
     wa.set_logger()
-    batch_env=os.environ.copy()
     os.environ["XNAT_HOST"] = args.host
     os.environ["XNAT_USER"] = args.user
     os.environ["XNAT_PASS"] = args.password
@@ -188,7 +208,6 @@ def main():
                 subject=job['job_subject'],
                 experiment=job['job_exp_label'],
                 level="experiment",
-                XNAT_HOST=args.host,
                 xnat_interface=xnat_interface,
                 create_hierarchy=True,
             )

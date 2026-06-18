@@ -1,4 +1,5 @@
 steps:
+
 - step_title: 1. Run NSCLC tumor segmentation on structural scan
   step_command: micromamba run -p {g_env_repo_dir} python {g_alg_repo_dir}/run_segmentation.py
     --input {job_struct_path} --output-dir {job_workdir} --output-format nrrd --verbose
