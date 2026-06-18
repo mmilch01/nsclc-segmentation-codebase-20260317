@@ -17,12 +17,15 @@ steps:
 - step_title: 3.5. Generate RTSTRUCT image.
   step_command: micromamba run -n base python {g_pymipl_dir}/nifti2rtss.py
     {job_workdir}/lesion_mask.nii.gz {job_struct_path} {job_workdir}/secondary/lesion_mask_rtss.dcm 
-      --structure_label TUMOR --series_number 100{job_scan_id} --series_description "NSCLC tumor mask RTSTRUCT"
+      --structure_label TUMOR --series_number 100{job_scan_id} --series_description "NSCLC-tumor-mask-RTSTRUCT"
 
-- step_title: 3.6. Upload RTSTRUCT image.
+- step_title: 3.6. Extract radiomic features.
+  step_command: micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/ct_struct.nii.gz {job_workdir}/lesion_mask.nii.gz -f csv -o {job_workdir}/lesion_mask_radiomic_features.csv
+
+- step_title: 3.7. Upload RTSTRUCT image.
   step_command: micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
     --level scan --project {g_project} --subject {job_subject} --experiment
-    {job_exp_label} --scan {job_scan_id}001 --local_resource {job_workdir}/secondary --remote_resource secondary
+    {job_exp_label} --scan 100{job_scan_id} --local_resource {job_workdir}/secondary --remote_resource secondary
     --create_hierarchy 1 --xsiType xnat:rtImageScanData --pullDataFromHeaders 1
 
 - step_title: 4. Generate QC image
