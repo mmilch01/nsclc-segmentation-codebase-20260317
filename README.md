@@ -38,7 +38,7 @@ The build config should identify the local micromamba environment folder (/opt/p
 This container can run on a local machine. For that, a directory containing XNAT-like session hierarchy should exist in the data directory, i.e. SCANS/<scan_no>/DICOM/<dicom_files>.
 ```bash
 cd <data_directory>
-docker run --rm -t -i -u $(id -u ${USER}):$(id -g ${USER}) -v <data_directory>:/input mmilch01/nsclc-segmentation-codebase-20260317:latest micromamba run -n base python /opt/packages/user/runtime_repo/entrypoint.py --project NSCLC_RADIOMICS --session <XNAT session label> --host <XNAT host> --user <XNAT user> --pass <XNAT password>
+docker run --rm -t -i -u $(id -u ${USER}):$(id -g ${USER}) -v <data_directory>:/input <image_name>:latest micromamba run -n base python /opt/packages/user/runtime_repo/entrypoint.py --project NSCLC_RADIOMICS --session <XNAT session label> --host <XNAT host> --user <XNAT user> --pass <XNAT password>
 ```
 
 `--host`, `--user`, and `--pass` fall back to the environment variables `XNAT_HOST`, `XNAT_USER`, and `XNAT_PASS` respectively if not supplied on the command line.
