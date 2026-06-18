@@ -17,7 +17,7 @@ The segmenter loads a chest CT scan, standardizes its spacing and slice shape, a
 The build steps are:
 
 1. Clone this runtime and `pymipl` repositories.
-2. Obtain the NSCLC segmenter repository from the developer <reference pending>
+2. Obtain the NSCLC segmenter repository from the developer (reference pending)
 3. Build the Python environment for the segmenter:
 ```bash
 mkdir -p /opt/user/env_repo
@@ -25,11 +25,12 @@ micromamba create -p /opt/packages/user/env_repo --rc-file /dev/null --no-env -c
 micromamba activate -p /opt/packages/user/env_repo
 cd <segmenter_source_repo>
 pip install -r requirements.txt
+pip install pyradiomics
 ```
 4. Create a Docker build config file, using `nsclc-segmentation-codebase-20260317-example.conf` in this repository as a model.
 5. Run:
 ```bash
-{PYMIPL_DIR}/build_deploy_custom_image.sh
+{PYMIPL_DIR}/build_deploy_custom_image.sh <config file>
 ```
 
 The build config should identify the local micromamba environment folder (/opt/packages/user/env_repo in this example), the segmentation algorithm source directory, and this repo runtime repository so they can be copied into the Docker image.
@@ -54,27 +55,17 @@ The segmentation scan in RTSS format is saved in the same session under scan ID 
 The session resource "nsclc-segmentation-codebase-20260317" structure output is:
 
 ```text
-.
-|-- batch_<date-time>.sh
-|-- <Subject>
-|   `-- <Experiment>
-|       `-- <Structural Scan>
-|           |-- ct_struct.nii
-|           |-- lesion_mask.nii.gz
-`-- <Project ID>
-    |-- jobs
-    |   `-- nsclc-segmentation-codebase-20260317_LUNG1-093_09-18-2008-StudyID-NA-69331_<job-id>
-    |       `-- job.yaml
-    |-- project_dir_structure.json
-    |-- scans.csv
-    `-- xnat_structure.json
+|-- job.sh
+|-- job.yaml
+|-- ct_struct.nii
+|-- lesion_mask.nii.gz
+|-- lesion_mask_radiomic_features.csv
+|-- qc.png
 ```
 
 Key outputs include:
 
 - `lesion_mask.nii.gz`: lesion mask in NIFTI format.
 - `ct_struct.nii`: converted structural CT image.
-- `scans.csv`: discovered structural scan list.
-- `project_dir_structure.json` and `xnat_structure.json`: XNAT/project structure metadata used by the workflow.
-- `jobs/.../job.yaml`: generated per-scan workflow job definition.
-- `batch_*.sh`: generated batch script executed by the entrypoint.
+- `job.yaml`: generated per-scan workflow job definition.
+- `job.sh`: generated batch script executed by the entrypoint.
