@@ -2,8 +2,6 @@
 
 ## 1. Overview
 
-TODO: clarify with essential details specific for the XNAT AI workflow.
-
 This XNAT container wraps the NSCLC lesion segmenter. It detects all structural chest CT scans in a session, and for each scan runs the segmenter. It then converts the segmentation into RTSTRUCT and uploads it to a session scan. All processing outputs and logs are uploaded to a session resource.
 
 ## 2. Lesion Segmenter
@@ -14,7 +12,7 @@ The segmenter loads a chest CT scan, standardizes its spacing and slice shape, a
 
 ## 3. Building the Docker Image
 
-**Prerequisites:** [pymipl](https://github.com/TODO) (reference pending) and this repository.
+**Prerequisites:** [pymipl](https://github.com/mmilch01/pymipl.git)), lesion segmenter codebase and this repository.
 
 The build steps are:
 
@@ -50,8 +48,6 @@ micromamba run -n base python /opt/packages/user/runtime_repo/entrypoint.py \
 2. From an individual session, run the **"NSCLC Tumor segmentation - Gevaert Lab"** command.
 
 ## 6. Outputs
-
-TODO: add a more complete description of the output resources.
 
 The session resource structure is:
 
