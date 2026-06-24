@@ -57,7 +57,6 @@ The session resource "nsclc-segmentation-codebase-20260317" structure output is:
 ```text
 |-- job.sh
 |-- job.yaml
-|-- ct_struct.nii
 |-- lesion_mask.nii.gz
 |-- lesion_mask_radiomic_features.csv
 |-- qc.png
@@ -66,6 +65,8 @@ The session resource "nsclc-segmentation-codebase-20260317" structure output is:
 Key outputs include:
 
 - `lesion_mask.nii.gz`: lesion mask in NIFTI format.
-- `ct_struct.nii`: converted structural CT image.
 - `job.yaml`: generated per-scan workflow job definition.
 - `job.sh`: generated batch script executed by the entrypoint.
+- `lesion_mask_radiomic_features.csv`: radiomic features file based on the lesion mask and the structural CT
+- `qc.png`: image that shows three-plane view with mask outline overlayed over the structural image, centered on the mask.
+
