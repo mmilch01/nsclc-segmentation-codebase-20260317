@@ -20,7 +20,7 @@ steps:
       --structure_label TUMOR --series_number 100{job_scan_id} --series_description "NSCLC-tumor-mask-RTSTRUCT"
 
 - step_title: 3.6. Extract radiomic features.
-  step_command: micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/ct_struct.nii {job_workdir}/lesion_mask.nii.gz -f csv -o {job_workdir}/lesion_mask_radiomic_features.csv
+  step_command: micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/ct_struct.nii.gz {job_workdir}/lesion_mask.nii.gz -f csv -o {job_workdir}/lesion_mask_radiomic_features.csv
 
 - step_title: 3.7. Upload RTSTRUCT image.
   step_command: micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
@@ -30,10 +30,10 @@ steps:
 
 - step_title: 4. Generate QC image
   step_command: micromamba run -n base python {g_pymipl_dir}/slice_qc.py -o {job_workdir}/qc.png
-    --mask {job_workdir}/lesion_mask.nii.gz {job_workdir}/ct_struct.nii
+    --mask {job_workdir}/lesion_mask.nii.gz {job_workdir}/ct_struct.nii.gz
 
 - step_title: 5. Clean up intermediate files
-  step_command: rm -r {job_workdir}/ct_struct.nii {job_workdir}/DICOM
+  step_command: rm -r {job_workdir}/DICOM {job_workdir}/secondary
 
 - step_title: 6. Upload results to XNAT
   step_command: micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
