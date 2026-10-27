@@ -186,7 +186,7 @@ def main():
         try:
             result = subprocess.run(["bash", str(batch_file)], check=False)
         except Exception as e:
-            print(f'WARNING: scan {job['job_scan_id']} could not be processed: {e}' )
+            print(f'WARNING: scan {job["job_scan_id"]} could not be processed: {e}' )
             continue
         if result.returncode != 0:
             print(f"WARNING: scan {job['job_scan_id']} failed with return code {result.returncode}: {batch_file}")
