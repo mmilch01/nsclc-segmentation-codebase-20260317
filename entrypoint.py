@@ -143,8 +143,6 @@ def main():
     os.environ["XNAT_PASS"] = args.password
 
     for scan in scans:       
-        # Whether to upload the generated job script bundle to the session resource.
-        UpdateSessionResource=True
         
         #################################################################
         # Other initializations
@@ -163,7 +161,6 @@ def main():
         job['job_struct_path'] = job['job_scan_context'] / scan['StructScan'] / 'DICOM'
         print (f"job variables: {job}")
 
-
         job_yaml = Path(__file__).with_name("main_job.yaml")
 
         with open(job_yaml, "r") as f:
@@ -171,10 +168,8 @@ def main():
 
         job['steps'] = job_steps.get("steps", job_steps)
     
-        local_job_dir = local_workdir_path / 'jobs' / job['job_id']
-        job_file_yaml = local_job_dir / 'job.yaml'
-        local_job_dir.mkdir(parents=True, exist_ok=True)
-
+        job_file_yaml = job['job_workdir'] / f"scan{job['job_scan_id']}" / "job.yaml"
+        job_file_yaml.parent.mkdir(parents=True, exist_ok=True)
         with open(job_file_yaml, "w") as f:
             yaml.safe_dump(wa.paths_to_str(job), f, sort_keys=False)
 
@@ -189,38 +184,12 @@ def main():
 
         print(f'Running {batch_file}')
 
-        
         result = subprocess.run(["bash", str(batch_file)], check=False)
         if result.returncode != 0:
             raise RuntimeError(
                 f"Batch file failed with exit code {result.returncode}: {batch_file}"
             )
         print(f'Completed {batch_file}')
-
-        if UpdateSessionResource:
-            if xnat_interface is None:
-                xnat_interface = wa.pyxnat.Interface(
-                    server=args.host,
-                    user=args.user,
-                    password=args.password,
-                )
-                xnat_interface.select.project(project)
-
-            print('Sending job bundle to XNAT resource')
-            res1 = wa.sync_resource_xnat(
-                local_job_dir,
-                workflow_id,
-                project,
-                subject=job['job_subject'],
-                experiment=job['job_exp_label'],
-                level="experiment",
-                xnat_interface=xnat_interface,
-                create_hierarchy=True,
-            )
-            if res1 != 0:
-                raise ConnectionError(
-                    "Uploading job configuration to XNAT failed"
-                )
 
 if __name__ == "__main__":
     main()
