@@ -18,22 +18,22 @@ steps:
   step_command: mkdir -p {job_workdir}/scan{job_scan_id}/secondary
 
 - step_title: 6. Generate RTSTRUCT image.
-  step_command: micromamba run -n base python {g_pymipl_dir}/nifti2rtss.py
+  step_command: bash -c 'micromamba run -n base python {g_pymipl_dir}/nifti2rtss.py
     {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz {job_struct_path} {job_workdir}/scan{job_scan_id}/secondary/lesion_mask_rtss.dcm
-      --structure_label TUMOR --series_number 100{job_scan_id} --series_description "NSCLC-tumor-mask-RTSTRUCT"
+      --structure_label TUMOR --series_number 100{job_scan_id} --series_description "NSCLC-tumor-mask-RTSTRUCT" || true'
 
 - step_title: 7. Extract radiomic features.
-  step_command: micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/scan{job_scan_id}/ct_struct.nii.gz {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz -f csv -o {job_workdir}/scan{job_scan_id}/lesion_mask_radiomic_features.csv
+  step_command: bash -c 'micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/scan{job_scan_id}/ct_struct.nii.gz {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz -f csv -o {job_workdir}/scan{job_scan_id}/lesion_mask_radiomic_features.csv || true'
 
 - step_title: 8. Upload RTSTRUCT image.
-  step_command: micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
+  step_command: bash -c 'micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
     --level scan --project {g_project} --subject {job_subject} --experiment
     {job_exp_label} --scan 100{job_scan_id} --local_resource {job_workdir}/scan{job_scan_id}/secondary --remote_resource secondary
-    --create_hierarchy 1 --xsiType xnat:rtImageScanData --pullDataFromHeaders 1
+    --create_hierarchy 1 --xsiType xnat:rtImageScanData --pullDataFromHeaders 1 || true'
 
 - step_title: 9. Generate QC image
-  step_command: micromamba run -n base python {g_pymipl_dir}/slice_qc.py -o {job_workdir}/scan{job_scan_id}/qc.png
-    --mask {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz {job_workdir}/scan{job_scan_id}/ct_struct.nii.gz
+  step_command: bash -c 'micromamba run -n base python {g_pymipl_dir}/slice_qc.py -o {job_workdir}/scan{job_scan_id}/qc.png
+    --mask {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz {job_workdir}/scan{job_scan_id}/ct_struct.nii.gz || true'
 
 - step_title: 10. Clean up intermediate files
   step_command: rm -r {job_workdir}/scan{job_scan_id}/DICOM {job_workdir}/scan{job_scan_id}/secondary
