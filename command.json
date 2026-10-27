@@ -3,7 +3,7 @@
   "label": "NSCLC tumor segmentation - Gevaert lab",
   "description": "Runs tumor segmentation at session level; mounts session directory at /input.",
   "version": "0.1",
-  "image": "mmilch01/nsclc-segmentation-codebase-20260317:0.02",
+  "image": "mmilch01/nsclc-segmentation-codebase-20260317:0.03",
   "type": "docker",
   "command-line": "micromamba run -n base python /opt/packages/user/runtime_repo/entrypoint.py --project #PROJECT# --subject #SUBJECT# --session #EXPERIMENT# --host $XNAT_HOST --user $XNAT_USER --pass $XNAT_PASS",
   "mounts": [

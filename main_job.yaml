@@ -1,41 +1,44 @@
 steps:
 
-- step_title: 1. Run NSCLC tumor segmentation on structural scan
+- step_title: 1. Make input and output folders
+  step_command: mkdir -p {job_workdir}/scan{job_scan_id}
+
+- step_title: 2. Run NSCLC tumor segmentation on structural scan
   step_command: micromamba run -p {g_env_repo_dir} python {g_alg_repo_dir}/run_segmentation.py
-    --input {job_struct_path} --output-dir {job_workdir} --output-format nrrd --verbose
+    --input {job_struct_path} --output-dir {job_workdir}/scan{job_scan_id} --output-format nrrd --verbose
 
-- step_title: 2. Convert structural scan to NIFTI
+- step_title: 3. Convert structural scan to NIFTI
   step_command: micromamba run -n base python {g_pymipl_dir}/test_rt-utils.py {job_struct_path}
-    {job_workdir}/ct
+    {job_workdir}/scan{job_scan_id}/ct
     
-- step_title: 3. Move lesion mask to the job workdir root
-  step_command: mv {job_workdir}/DICOM/lesion_mask.nii.gz {job_workdir}/lesion_mask.nii.gz
+- step_title: 4. Move lesion mask to the job workdir root
+  step_command: mv {job_workdir}/scan{job_scan_id}/DICOM/lesion_mask.nii.gz {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz
 
-- step_title: 3.1 Create secondary resource directory for RTSTRUCT
-  step_command: mkdir -p {job_workdir}/secondary
+- step_title: 5 Create secondary resource directory for RTSTRUCT
+  step_command: mkdir -p {job_workdir}/scan{job_scan_id}/secondary
 
-- step_title: 3.5. Generate RTSTRUCT image.
+- step_title: 6. Generate RTSTRUCT image.
   step_command: micromamba run -n base python {g_pymipl_dir}/nifti2rtss.py
-    {job_workdir}/lesion_mask.nii.gz {job_struct_path} {job_workdir}/secondary/lesion_mask_rtss.dcm 
+    {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz {job_struct_path} {job_workdir}/scan{job_scan_id}/secondary/lesion_mask_rtss.dcm
       --structure_label TUMOR --series_number 100{job_scan_id} --series_description "NSCLC-tumor-mask-RTSTRUCT"
 
-- step_title: 3.6. Extract radiomic features.
-  step_command: micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/ct_struct.nii.gz {job_workdir}/lesion_mask.nii.gz -f csv -o {job_workdir}/lesion_mask_radiomic_features.csv
+- step_title: 7. Extract radiomic features.
+  step_command: micromamba run -p {g_env_repo_dir} pyradiomics {job_workdir}/scan{job_scan_id}/ct_struct.nii.gz {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz -f csv -o {job_workdir}/scan{job_scan_id}/lesion_mask_radiomic_features.csv
 
-- step_title: 3.7. Upload RTSTRUCT image.
+- step_title: 8. Upload RTSTRUCT image.
   step_command: micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
     --level scan --project {g_project} --subject {job_subject} --experiment
-    {job_exp_label} --scan 100{job_scan_id} --local_resource {job_workdir}/secondary --remote_resource secondary
+    {job_exp_label} --scan 100{job_scan_id} --local_resource {job_workdir}/scan{job_scan_id}/secondary --remote_resource secondary
     --create_hierarchy 1 --xsiType xnat:rtImageScanData --pullDataFromHeaders 1
 
-- step_title: 4. Generate QC image
-  step_command: micromamba run -n base python {g_pymipl_dir}/slice_qc.py -o {job_workdir}/qc.png
-    --mask {job_workdir}/lesion_mask.nii.gz {job_workdir}/ct_struct.nii.gz
+- step_title: 9. Generate QC image
+  step_command: micromamba run -n base python {g_pymipl_dir}/slice_qc.py -o {job_workdir}/scan{job_scan_id}/qc.png
+    --mask {job_workdir}/scan{job_scan_id}/lesion_mask.nii.gz {job_workdir}/scan{job_scan_id}/ct_struct.nii.gz
 
-- step_title: 5. Clean up intermediate files
-  step_command: rm -r {job_workdir}/DICOM {job_workdir}/secondary
+- step_title: 10. Clean up intermediate files
+  step_command: rm -r {job_workdir}/scan{job_scan_id}/DICOM {job_workdir}/scan{job_scan_id}/secondary
 
-- step_title: 6. Upload results to XNAT
+- step_title: 11. Upload results to XNAT
   step_command: micromamba run -n base python {g_pymipl_dir}/xnat_workflow/sync-resource-with-xnat.py
     --level experiment --project {g_project} --subject {job_subject} --experiment
     {job_exp_label} --local_resource {job_workdir} --remote_resource {g_workflow_id}
