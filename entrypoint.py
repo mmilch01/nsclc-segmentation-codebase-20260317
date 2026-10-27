@@ -22,6 +22,7 @@ def parse_args():
         description="Build NSCLC segmentation workflow jobs from an XNAT project."
     )
     parser.add_argument("--project", required=True, help="XNAT project label.")
+    parser.add_argument("--subject", required=True, help="XNAT subject ID supplied by the session wrapper; overrides DICOM PatientName.")
     parser.add_argument("--session", help="XNAT experiment/session label or ID. Required for experiment-level mounts.")
     parser.add_argument("--host", help="XNAT host URL. Defaults to XNAT_HOST.")
     parser.add_argument("--user", help="XNAT username. Defaults to XNAT_USER.")
@@ -153,7 +154,12 @@ def main():
         xnat_interface = None
         num_sessions = len(scans)
 
-        job = wa.populate_job_fields(env_type, global_vars, workflow_id, scan, scan_key="StructScan")
+        # DICOM PatientName may be anonymized and does not identify the XNAT subject.
+        scan = dict(scan, Subject=args.subject)
+        job = wa.populate_job_fields(
+            env_type, global_vars, workflow_id, scan,
+            subject=args.subject, scan_key="StructScan",
+        )
         job['job_struct_path'] = job['job_scan_context'] / scan['StructScan'] / 'DICOM'
         print (f"job variables: {job}")
 
